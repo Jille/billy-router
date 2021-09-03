@@ -1,3 +1,4 @@
+// Package router allows you to mount Billy.Filesystems over another.
 package router
 
 import (
@@ -29,6 +30,8 @@ type subRoute struct {
 	routes map[string]*subRoute
 }
 
+// New creates a new billy.Filesystem that forwards all calls to the given root filesystem.
+// After this you can call Mount() to overlay other filesystems over it.
 func New(root billy.Basic) *Router {
 	return &Router{
 		routes: subRoute{
@@ -52,6 +55,8 @@ func cleanPath(p string) string {
 	return ""
 }
 
+// Mount the given filesystem at the given path. Any calls to inside that path will be sent to the given filesystem.
+// Any intermediate directories up to your mountpoint are implicitly created.
 func (r *Router) Mount(p string, fs billy.Basic) {
 	p = cleanPath(p)
 	sp := strings.Split(p, "/")
@@ -73,6 +78,8 @@ func (r *Router) Mount(p string, fs billy.Basic) {
 	sr.fs = polyfill.New(fs)
 }
 
+// Umount undoes a previous Mount() call. It panics if you umount something that wasn't mounted.
+// Any implicit intermediate directories created by Mount() are cleaned up automatically.
 func (r *Router) Umount(p string) {
 	p = cleanPath(p)
 	sp := strings.Split(p, "/")
