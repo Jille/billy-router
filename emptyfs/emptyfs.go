@@ -31,7 +31,7 @@ func (Filesystem) Open(p string) (billy.File, error) {
 }
 
 func (Filesystem) OpenFile(p string, flag int, mode os.FileMode) (billy.File, error) {
-	if flag&os.O_CREATE > 0 {
+	if flag&(os.O_CREATE|os.O_RDWR|os.O_WRONLY|os.O_TRUNC) > 0 {
 		return nil, os.ErrPermission
 	}
 	return nil, os.ErrNotExist
