@@ -27,11 +27,14 @@ func (Filesystem) Create(p string) (billy.File, error) {
 }
 
 func (Filesystem) Open(p string) (billy.File, error) {
-	return nil, os.ErrPermission
+	return nil, os.ErrNotExist
 }
 
 func (Filesystem) OpenFile(p string, flag int, mode os.FileMode) (billy.File, error) {
-	return nil, os.ErrPermission
+	if flag&os.O_CREATE > 0 {
+		return nil, os.ErrPermission
+	}
+	return nil, os.ErrNotExist
 }
 
 func (Filesystem) Rename(from, to string) error {
