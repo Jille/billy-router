@@ -48,11 +48,11 @@ func crossFilesystemRenameNotSupported(fromFS, toFS billy.Filesystem, fromPath, 
 }
 
 func cleanPath(p string) string {
-	p = strings.TrimRight(path.Clean(p), "/")
+	p = strings.Trim(path.Clean(p), "/")
 	if p == "." {
-		return p
+		return ""
 	}
-	return ""
+	return p
 }
 
 // Mount the given filesystem at the given path. Any calls to inside that path will be sent to the given filesystem.
@@ -135,7 +135,8 @@ func (r *Router) resolvePathWithMount(p string) (string, string, billy.Filesyste
 		}
 		sr = s
 		if sr.fs != nil {
-			lastMount = i
+			lastMount = i + 1
+			mount = sr.fs
 		}
 	}
 	return strings.Join(sp[lastMount:], "/"), strings.Join(sp[:lastMount], "/"), mount
@@ -194,6 +195,7 @@ func (r *Router) Remove(p string) error {
 }
 func (r *Router) ReadDir(p string) ([]os.FileInfo, error) {
 	sub, fs := r.resolvePath(p)
+	p = cleanPath(p)
 	sp := strings.Split(p, "/")
 	r.mtx.RLock()
 	sr := &r.routes
@@ -231,10 +233,11 @@ func (r *Router) ReadDir(p string) ([]os.FileInfo, error) {
 			}
 			out[mp] = virtualDir{mp, ro.mtime}
 		} else {
-			out[mp], err = ro.fs.Stat("/")
+			st, err := ro.fs.Stat("/")
 			if err != nil {
 				return nil, err
 			}
+			out[mp] = nameOverride{st, mp}
 		}
 	}
 	names := make([]string, 0, len(out))
@@ -276,6 +279,15 @@ func (v virtualDir) IsDir() bool {
 
 func (v virtualDir) Sys() interface{} {
 	return nil
+}
+
+type nameOverride struct {
+	os.FileInfo
+	name string
+}
+
+func (n nameOverride) Name() string {
+	return n.name
 }
 
 func (r *Router) MkdirAll(p string, perm os.FileMode) error {
